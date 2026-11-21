@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      # Pull requests to a release branch restore the caches of the release branch, whose dependencie
+      # Pull requests to a release branch restore the caches of the release branch, whose dependencies
       # usually differ from those of main.
       - 'release/*'
   workflow_dispatch:
@@ -77,6 +77,7 @@ jobs:
             --repo "${{ github.repository }}" \
             --ref "${{ github.ref_name }}"
       - name: Up | Trust
+        if: always()
         continue-on-error: true
         run: |
           sed -i 's/\r$//' nhacnguoi.sh || true
